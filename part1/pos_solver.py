@@ -13,6 +13,7 @@
 import random
 import math
 
+
 # We've set up a suggested code structure, but feel free to change it. Just
 # make sure your code still works with the label.py and pos_scorer.py code
 # that we've supplied.
@@ -27,6 +28,32 @@ class Solver:
     # Do the training!
     #
     def train(self, data):
+        # Calculating P(S1)
+        POS = ["det", ".", "x", "noun", "verb", "prt", "pron", "num", "adp", "adv", "pron", "adj", "conj"]
+        s1 = {}
+        for entry in POS:
+            s1.update({entry: 0})
+        for sentence in data:
+            s1[sentence[1][0]] += 1
+        for key in s1.keys():
+            if s1[key] == 0:
+                s1[key] = 1                 # if no sentence starts with a Parts of Speech
+        size_of_data = sum(s1.values())
+        for key in s1.keys():
+            s1[key] = (s1[key] * 1.0) / (size_of_data * 1.0)
+        s = {}
+        for key in s1.keys():
+            s[key] = {}
+        for sentence in data:
+            for i in range(1,len(sentence[1])):
+                if sentence[1][i] in s[sentence[1][i-1]]:
+                    s[sentence[1][i - 1]][sentence[1][i]] += 1
+                else:
+                    s[sentence[1][i - 1]].update({sentence[1][i]:1})
+        for key in s.keys():
+            for inner_key in s.keys():
+                if inner_key not in s[key]:
+                    s[key].update({inner_key:1})
         pass
 
     # Functions for each algorithm.
