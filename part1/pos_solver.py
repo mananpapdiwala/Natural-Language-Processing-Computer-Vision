@@ -29,18 +29,30 @@ class Solver:
     #
     def train(self, data):
         # Calculating P(S1)
-        POS = ["det", ".", "x", "noun", "verb", "prt", "pron", "num", "adp", "adv", "pron", "adj", "conj"]
+
+        #Initailizing the parts of speech array
+        self.POS = ["det", ".", "x", "noun", "verb", "prt", "pron", "num", "adp", "adv", "pron", "adj", "conj"]
+        #Initiailizing the parts of speech dictionary    
         s1 = {}
-        for entry in POS:
-            s1.update({entry: 0})
+        for partsOfSpeech in self.POS:
+            s1.update({partsOfSpeech: 0})
+        print s1
+        
+        #Counting the number of times a particular part of speech starts with a sentence
         for sentence in data:
             s1[sentence[1][0]] += 1
-        for key in s1.keys():
-            if s1[key] == 0:
-                s1[key] = 1                 # if no sentence starts with a Parts of Speech
+        print s1
+
+        #Counting the probability for each part of speech to start in a sentence
         size_of_data = sum(s1.values())
         for key in s1.keys():
-            s1[key] = (s1[key] * 1.0) / (size_of_data * 1.0)
+            if s1[key] == 0:
+                s1[key] = (1.0) / (size_of_data)
+            else:
+                s1[key] = (s1[key] * 1.0) / (size_of_data * 1.0)
+
+        self.S1 = s1
+
         # Calculating P(Si+1|si)
         s = {}
         for key in s1.keys():
@@ -58,25 +70,27 @@ class Solver:
         for key in s.keys():
             key_sum = sum(s[key].values())
             for inner_key in s.keys():
-                s[key][inner_key] = (s[key][inner_key]*1.0) / (key_sum*1.0)
+                s[key][inner_key] = (s[key][inner_key]*1.0) / (key_sum)
+
+        self.transitionProbabilities = s
         # Calculating P(Wi|Si)
-        '''w_s = {}
+        w_s = {}
+        for partsOfSpeech in self.POS:
+            w_s[partsOfSpeech] = {}
+
         for sentence in data:
-            for i in range(1, len(sentence[1])):
-                if sentence[1][i] in w_s[sentence[1][i - 1]]:
-                    w_s[sentence[1][i - 1]][sentence[1][i]] += 1
+            for i in range(0, len(sentence[0])):
+                if sentence[0][i] in w_s[sentence[1][i]]:
+                    w_s[sentence[1][i]][sentence[0][i]] += 1
                 else:
-                    w_s[sentence[1][i - 1]].update({sentence[1][i]: 1})
-        for key in w_s.keys():
-            for inner_key in w_s.keys():
-                if inner_key not in w_s[key]:
-                    w_s[key].update({inner_key: 1})
+                    w_s[sentence[1][i]].update({ sentence[0][i] : 1 })
+
         for key in w_s.keys():
             key_sum = sum(w_s[key].values())
-            for inner_key in w_s.keys():
-                w_s[key][inner_key] = (w_s[key][inner_key] * 1.0) / (key_sum * 1.0)'''
-        pass
+            for inner_key in w_s[key].keys():
+                w_s[key][inner_key] = (w_s[key][inner_key] * 1.0) / (key_sum)
 
+        self.emissionProbabilities = w_s
     # Functions for each algorithm.
     #
     def simplified(self, sentence):
