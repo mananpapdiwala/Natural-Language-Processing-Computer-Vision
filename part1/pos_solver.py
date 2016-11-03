@@ -24,12 +24,12 @@ class Solver:
     def __init__(self):
         # Initialising the parts of speech dictionary
         self.POS = ["det", ".", "x", "noun", "verb", "prt", "pron", "num", "adp", "adv", "pron", "adj", "conj"]
-        self.TotalWords = 0
-        self.S1 = {}
-        self.transitionProbabilities = {}
-        self.emissionProbabilities = {}
-        self.countForEachPartOfSpeech = {}
-        self.emissionCount = {}
+        self.total_words = 0
+        self.s1 = {}
+        self.transition_probabilities = {}
+        self.emission_probabilities = {}
+        self.count_for_each_part_of_speech = {}
+        self.emission_count = {}
 
     def posterior(self, sentence, label):
         return 0
@@ -37,7 +37,7 @@ class Solver:
     # Do the training!
     #
     def train(self, data):
-        # Calculating P(S1)
+        # Calculating P(s1)
 
         s1 = {}
         for partsOfSpeech in self.POS:
@@ -57,11 +57,11 @@ class Solver:
         for key in s1.keys():
             s1[key] = (s1[key] * 1.0) / (size_of_data * 1.0)
 
-        self.S1 = s1
+        self.s1 = s1
 
         # Calculating P(Si+1|si)
         s = {}
-        for key in s1.keys():
+        for key in self.s1.keys():
             s[key] = {}
         for sentence in data:
             for i in range(1, len(sentence[1])):
@@ -77,7 +77,7 @@ class Solver:
             key_sum = sum(s[key].values())
             for inner_key in s.keys():
                 s[key][inner_key] = (s[key][inner_key] * 1.0) / key_sum
-        self.transitionProbabilities = s
+        self.transition_probabilities = s
 
         # Calculating P(Wi|Si)
         w_s = {}
@@ -90,28 +90,28 @@ class Solver:
                     w_s[sentence[1][i]][sentence[0][i]] += 1
                 else:
                     w_s[sentence[1][i]].update({sentence[0][i]: 1})
-        self.emissionCount = copy.deepcopy(w_s)
+        self.emission_count = copy.deepcopy(w_s)
         for key in w_s.keys():
             key_sum = sum(w_s[key].values())
             for inner_key in w_s[key].keys():
                 w_s[key][inner_key] = (w_s[key][inner_key] * 1.0) / key_sum
 
-        self.emissionProbabilities = w_s
+        self.emission_probabilities = w_s
         for partsOfSpeech in self.POS:
-            temp_sum = sum(self.emissionCount[partsOfSpeech].values())
-            self.countForEachPartOfSpeech[partsOfSpeech] = 1 if temp_sum == 0 else temp_sum
+            temp_sum = sum(self.emission_count[partsOfSpeech].values())
+            self.count_for_each_part_of_speech[partsOfSpeech] = 1 if temp_sum == 0 else temp_sum
 
-        self.TotalWords = sum([sum(self.emissionCount[row].values()) for row in self.emissionCount])
+        self.total_words = sum([sum(self.emission_count[row].values()) for row in self.emission_count])
 
     def get_simplified_probability(self, word):
         s_w = []
-        for partsOfSpeech in self.POS:
-            w_s = self.emissionProbabilities[partsOfSpeech][word] if word in self.emissionProbabilities[partsOfSpeech] else 1.0/self.countForEachPartOfSpeech[partsOfSpeech]
-            s = (self.countForEachPartOfSpeech[partsOfSpeech] * 1.0) / self.TotalWords
+        for parts_of_speech in self.POS:
+            w_s = self.emission_probabilities[parts_of_speech][word] if word in self.emission_probabilities[parts_of_speech] else 1.0 / self.count_for_each_part_of_speech[parts_of_speech]
+            s = (self.count_for_each_part_of_speech[parts_of_speech] * 1.0) / self.total_words
             w = 0
             for pos in self.POS:
-                w += (self.emissionProbabilities[pos][word] if word in self.emissionProbabilities[pos] else 1.0/self.countForEachPartOfSpeech[pos]) * ((self.countForEachPartOfSpeech[pos] * 1.0) / self.TotalWords)
-            s_w.append([partsOfSpeech, (w_s * s)/w])
+                w += (self.emission_probabilities[pos][word] if word in self.emission_probabilities[pos] else 1.0 / self.count_for_each_part_of_speech[pos]) * ((self.count_for_each_part_of_speech[pos] * 1.0) / self.total_words)
+            s_w.append([parts_of_speech, (w_s * s)/w])
         max_row = 0
         max_probability = s_w[0][1]
         for row in range(0, len(s_w)):
@@ -126,9 +126,9 @@ class Solver:
         simplified_result = []
         marginal_probability = []
         for i in range(0, len(sentence)):
-            pos, prob = self.get_simplified_probability(sentence)
+            pos, prob = self.get_simplified_probability(sentence[i])
             simplified_result.append(pos)
-            marginal_probability.append(prob)
+            marginal_probability.append(math.log10(prob))
         return [[simplified_result], [marginal_probability]]
 
     def hmm(self, sentence):
@@ -144,22 +144,20 @@ class Solver:
                 l1.append(previous)
                 l2.append(viterbi_table[i - 1][previous])
             for partsOfSpeech in self.POS:
-                if sentence[i] not in self.emissionProbabilities[partsOfSpeech]:
-                    self.emissionProbabilities[partsOfSpeech].update({sentence[i]: 1.0/self.TotalWords})
+                if sentence[i] not in self.emission_probabilities[partsOfSpeech]:
+                    self.emission_probabilities[partsOfSpeech].update({sentence[i]: 1.0 / self.total_words})
                 if i == 0:
                     viterbi_table[i].update(
-                        {partsOfSpeech: math.log10(self.emissionProbabilities[partsOfSpeech][sentence[i]]) + math.log10(
-                            self.S1[partsOfSpeech])})
+                        {partsOfSpeech: math.log10(self.emission_probabilities[partsOfSpeech][sentence[i]]) + math.log10(
+                            self.s1[partsOfSpeech])})
                 else:
                     viterbi_table[i].update(
-                        {partsOfSpeech: math.log10(self.emissionProbabilities[partsOfSpeech][sentence[i]]) + math.log10(
-                            self.transitionProbabilities[previous][partsOfSpeech]) + viterbi_table[i - 1][previous]})
+                        {partsOfSpeech: math.log10(self.emission_probabilities[partsOfSpeech][sentence[i]]) + math.log10(
+                            self.transition_probabilities[previous][partsOfSpeech]) + viterbi_table[i - 1][previous]})
         i = len(viterbi_table) - 1
         previous = max(viterbi_table[i], key=viterbi_table[i].get)
         l1.append(previous)
         l2.append(viterbi_table[i][previous])
-        for i in range(len(l2)):
-            l2[i] = 10 ** l2[i]
         return [[l1], [l2]]
 
     def complex(self, sentence):
