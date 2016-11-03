@@ -12,6 +12,7 @@
 
 import random
 import math
+import copy
 
 
 # We've set up a suggested code structure, but feel free to change it. Just
@@ -36,12 +37,10 @@ class Solver:
         s1 = {}
         for partsOfSpeech in self.POS:
             s1.update({partsOfSpeech: 0})
-        print s1
 
         # Counting the number of times a particular part of speech starts with a sentence
         for sentence in data:
             s1[sentence[1][0]] += 1
-        print s1
 
         # Check if sentence does not start from a part of speech and set it to 1
         for key in s1.keys():
@@ -86,18 +85,47 @@ class Solver:
                     w_s[sentence[1][i]][sentence[0][i]] += 1
                 else:
                     w_s[sentence[1][i]].update({sentence[0][i]: 1})
-
+        self.emissionCount = copy.deepcopy(w_s)
         for key in w_s.keys():
             key_sum = sum(w_s[key].values())
             for inner_key in w_s[key].keys():
                 w_s[key][inner_key] = (w_s[key][inner_key] * 1.0) / key_sum
 
         self.emissionProbabilities = w_s
+        self.countForEachPartOfSpeech = {}
+        for partsOfSpeech in self.POS:
+            tempSum = sum(self.emissionCount[partsOfSpeech].values());
+            self.countForEachPartOfSpeech[partsOfSpeech] = 1 if tempSum == 0 else tempSum
+
+        self.TotalWords = sum([ sum(self.emissionCount[row].values()) for row in self.emissionCount])
+
+    def getSimplifiedProbability(self, word):
+        s_w = []
+        for partsOfSpeech in self.POS:
+            w_s = self.emissionProbabilities[partsOfSpeech][word] if word in self.emissionProbabilities[partsOfSpeech] else 1.0/self.countForEachPartOfSpeech[partsOfSpeech]
+            s = ( self.countForEachPartOfSpeech[partsOfSpeech] * 1.0) / self.TotalWords
+            w = 0
+            for pos in self.POS:
+                w+= (self.emissionProbabilities[pos][word] if word in self.emissionProbabilities[pos] else 1.0/self.countForEachPartOfSpeech[pos]) * ( ( self.countForEachPartOfSpeech[pos] * 1.0) / self.TotalWords )
+            s_w.append([partsOfSpeech, (w_s * s)/w])
+        maxRow = 0
+        maxProbability = s_w[0][1]
+        for row in range(0, len(s_w)):
+            if s_w[row][1] > maxProbability:
+                maxProbability = s_w[row][1]
+                maxRow = row
+        return s_w[maxRow]
+
 
     # Functions for each algorithm.
     #
     def simplified(self, sentence):
+        simplifiedResult = []
+        sentences = []
+        for i in range(0, len(sentence)):
+            ( partsOfSpeech, marginalProbability ) = self.getSimplifiedProbability(sentence)
         return [[["noun"] * len(sentence)], [[0] * len(sentence), ]]
+        return simplifiedResult
 
     def hmm(self, sentence):
         return [[["noun"] * len(sentence)], []]
