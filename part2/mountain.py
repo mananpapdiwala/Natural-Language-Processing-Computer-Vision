@@ -4,6 +4,14 @@
 # Based on skeleton code by D. Crandall, Oct 2016
 #
 
+
+#bayes_net_1b
+#
+# Just return a ridge with each element in the array representing row with max
+# edge strength value
+#
+#
+
 from PIL import Image
 from numpy import *
 from scipy.ndimage import filters
@@ -32,6 +40,40 @@ def draw_edge(image, y_coordinates, color, thickness):
             image.putpixel((x, t), color)
     return image
 
+
+def find_max_row(x_col):
+    # find row with max strength in given column
+    x_index = 0
+    x_max_value = 0
+    x_total_value = 0
+    for x_row in range(x_col.shape[0]):
+        if x_col[x_row] > x_max_value:
+            x_max_value = x_col[x_row]
+            x_index = x_row
+    return x_index
+
+
+def bayes_net_1b(x_edge_strength):
+    # iterate through rows and return an array with each element in the array representing row with max
+    # edge strength value
+    x_ridge = []
+    # Iterating each column
+    for col in range(x_edge_strength.shape[1]):
+        row_with_max_value_for_this_column = find_max_row(x_edge_strength[:, col])
+        x_ridge.append(row_with_max_value_for_this_column)
+    print len(x_ridge)
+    print x_edge_strength.shape
+    return x_ridge
+
+
+
+
+
+
+
+
+
+
 # main program
 #
 (input_filename, output_filename, gt_row, gt_col) = sys.argv[1:]
@@ -43,9 +85,14 @@ input_image = Image.open(input_filename)
 edge_strength = edge_strength(input_image)
 imsave('edges.jpg', edge_strength)
 
+
+
+
 # You'll need to add code here to figure out the results! For now,
 # just create a horizontal centered line.
-ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
+#ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
+ridge = bayes_net_1b(edge_strength)
+print ridge
 
 # output answer
 imsave(output_filename, draw_edge(input_image, ridge, (255, 0, 0), 5))
