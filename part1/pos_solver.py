@@ -41,6 +41,7 @@ class Solver:
         size_of_data = sum(s1.values())
         for key in s1.keys():
             s1[key] = (s1[key] * 1.0) / (size_of_data * 1.0)
+        # Calculating P(Si+1|si)
         s = {}
         for key in s1.keys():
             s[key] = {}
@@ -54,6 +55,26 @@ class Solver:
             for inner_key in s.keys():
                 if inner_key not in s[key]:
                     s[key].update({inner_key:1})
+        for key in s.keys():
+            key_sum = sum(s[key].values())
+            for inner_key in s.keys():
+                s[key][inner_key] = (s[key][inner_key]*1.0) / (key_sum*1.0)
+        # Calculating P(Wi|Si)
+        '''w_s = {}
+        for sentence in data:
+            for i in range(1, len(sentence[1])):
+                if sentence[1][i] in w_s[sentence[1][i - 1]]:
+                    w_s[sentence[1][i - 1]][sentence[1][i]] += 1
+                else:
+                    w_s[sentence[1][i - 1]].update({sentence[1][i]: 1})
+        for key in w_s.keys():
+            for inner_key in w_s.keys():
+                if inner_key not in w_s[key]:
+                    w_s[key].update({inner_key: 1})
+        for key in w_s.keys():
+            key_sum = sum(w_s[key].values())
+            for inner_key in w_s.keys():
+                w_s[key][inner_key] = (w_s[key][inner_key] * 1.0) / (key_sum * 1.0)'''
         pass
 
     # Functions for each algorithm.
