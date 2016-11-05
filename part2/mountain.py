@@ -135,6 +135,53 @@ def createSamples(x_transition_probability_array, x_probability_of_Si_to_be_at_t
         sample[random_column] = possible_row_in_this_col_based_on_probability
     return sample
 
+
+def createSamples2(x_transition_probability_array, x_probability_of_Si_to_be_at_the_cell, lastSample):
+    sample = lastSample
+    rows_not_visited = range(len(lastSample))
+    for j in range(len(lastSample)):
+        probability_of_element_on_a_particular_row = []
+        x_index = 0
+        random_column = rows_not_visited[x_index]
+        rows_not_visited.pop(x_index)
+
+        max_probability = 0.0
+        possible_row_in_this_col_based_on_probability = 0
+
+        for row in range(x_probability_of_Si_to_be_at_the_cell.shape[0]):
+
+            # P(S_i|S_i-1)
+            # Probability independent of col - 1 when col - 1 < 0 i.e. out of image
+            if random_column - 1 < 0:
+                probability_of_element_at_row_given_probability_of_preceding_column_row = 1
+            else:
+                probability_of_element_at_row_given_probability_of_preceding_column_row = x_transition_probability_array[abs(sample[random_column - 1] - row)]
+
+            # P(S_i)
+            probability_of_element_at_row_in_this_column = x_probability_of_Si_to_be_at_the_cell[row][random_column]
+
+            probability_at_current_row = probability_of_element_at_row_given_probability_of_preceding_column_row * probability_of_element_at_row_in_this_column
+            probability_of_element_on_a_particular_row.append(probability_at_current_row)
+
+            if max_probability < probability_at_current_row:
+                possible_row_in_this_col_based_on_probability = row
+                max_probability = probability_at_current_row
+
+        sample[random_column] = possible_row_in_this_col_based_on_probability
+    return sample
+
+
+def findProbability(x_transition_probability_array, x_probability_of_Si_to_be_at_the_cell, lastSample):
+    x_probability = 0
+    for col in range(x_probability_of_Si_to_be_at_the_cell.shape[1]):
+        if col - 1 < 0:
+            probability_of_element_at_row_given_probability_of_preceding_column_row = 1
+        else:
+            probability_of_element_at_row_given_probability_of_preceding_column_row = x_transition_probability_array[abs(lastSample[col - 1] - lastSample[col])]
+        probability_of_element_at_row_in_this_column = x_probability_of_Si_to_be_at_the_cell[lastSample[col]][col]
+        x_probability += probability_of_element_at_row_given_probability_of_preceding_column_row * probability_of_element_at_row_in_this_column
+    return x_probability
+
 start_time = time.time()
 print time.asctime(time.localtime(time.time()))
 # main program
@@ -158,31 +205,44 @@ probability_of_Si_to_be_at_the_cell = convert_edge_strength_to_probability_array
 
 # just create a horizontal centered line.
 # ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
-sample = result[0]
-sample = [edge_strength.shape[0]/2] * edge_strength.shape[1]
-sampleList = [sample]
+x_sample = result[0]
+sampleList = [x_sample]
 for i in range(int(no_of_samples)):
     print str(i)
-    sample = createSamples(transition_probability_array, probability_of_Si_to_be_at_the_cell, sample)
-    sampleList.append(sample)
+    x_sample = createSamples(transition_probability_array, probability_of_Si_to_be_at_the_cell, x_sample)
+    sampleList.append(x_sample)
 
 result = [sum(x) for x in zip(*sampleList)]
 result = [x / int(no_of_samples) for x in result]
 
-print sample
+print x_sample
 print result
 
 f = open('out.txt', 'w')
 f.write(str(sampleList))
 f.close()
 
+
+""" max_probability = 0
+for i in range(edge_strength.shape[0]):
+    x_sample = [i] * edge_strength.shape[1]
+
+    x_sample = createSamples2(transition_probability_array, probability_of_Si_to_be_at_the_cell, x_sample)
+    probability_of_x_sample = findProbability(transition_probability_array, probability_of_Si_to_be_at_the_cell,
+                                              x_sample)
+    print str(i) + " " + str(probability_of_x_sample)
+    if probability_of_x_sample > max_probability:
+        max_probability = probability_of_x_sample
+        finalSample = x_sample
+sample = finalSample"""
+
 # output answer
-#imsave(output_filename, draw_edge(input_image, result[0], (255, 0, 0), 5))
+# imsave(output_filename, draw_edge(input_image, result[0], (255, 0, 0), 5))
 
 output_filename = str(time.asctime(time.localtime(time.time())))+"_1_"+str(no_of_samples)+"_"+output_filename
 imsave(output_filename, draw_edge(input_image, result, (0, 0, 255), 5))
 output_filename = str(time.asctime(time.localtime(time.time())))+"_2_"+str(no_of_samples)+"_"+output_filename
-imsave(output_filename, draw_edge(input_image, sample, (0, 255, 0), 5))
+imsave(output_filename, draw_edge(input_image, x_sample, (0, 255, 0), 5))
 
 end_time = time.time()
 print end_time - start_time
