@@ -18,12 +18,15 @@ import copy
 # make sure your code still works with the label.py and pos_scorer.py code
 # that we've supplied.
 #
+import sys
+
+
 class Solver:
     # Calculate the log of the posterior probability of a given sentence
     #  with a given part-of-speech labeling
     def __init__(self):
         # Initialising the parts of speech dictionary
-        self.POS = ["det", ".", "x", "noun", "verb", "prt", "pron", "num", "adp", "adv", "pron", "adj", "conj"]
+        self.POS = ["det", ".", "x", "noun", "verb", "prt", "pron", "num", "adp", "adv", "adj", "conj"]
         self.total_words = 0
         self.s1 = {}
         self.transition_probabilities = {}
@@ -65,17 +68,26 @@ class Solver:
             s[key] = {}
         for sentence in data:
             for i in range(1, len(sentence[1])):
-                if sentence[1][i] in s[sentence[1][i - 1]]:
-                    s[sentence[1][i - 1]][sentence[1][i]] += 1
+                if i != len(sentence[1]) - 1:
+                    if sentence[1][i] in s[sentence[1][i - 1]]:
+                        s[sentence[1][i - 1]][sentence[1][i]] += 1
+                    else:
+                        s[sentence[1][i - 1]].update({sentence[1][i]: 1})
                 else:
-                    s[sentence[1][i - 1]].update({sentence[1][i]: 1})
+                    if "end" in s[sentence[1][i]]:
+                        s[sentence[1][i]]["end"] += 1
+                    else:
+                        s[sentence[1][i]].update({"end": 1})
         for key in s.keys():
             for inner_key in s.keys():
                 if inner_key not in s[key]:
                     s[key].update({inner_key: 1})
         for key in s.keys():
+            if "end" not in s[key]:
+                s[key].update({"end": 1})
+        for key in s.keys():
             key_sum = sum(s[key].values())
-            for inner_key in s.keys():
+            for inner_key in s[key]:
                 s[key][inner_key] = (s[key][inner_key] * 1.0) / key_sum
         self.transition_probabilities = s
 
@@ -132,32 +144,40 @@ class Solver:
         return [[simplified_result], [marginal_probability]]
 
     def hmm(self, sentence):
+        viterbi_table = {}
+        for partsOfSpeech in self.POS:
+            viterbi_table[partsOfSpeech] = {}
+        for i in range(len(sentence)):
+            for partsOfSpeech in self.POS:
+                if i != 0:
+                    previousMax = max(viterbi_table, key=lambda x: (
+                    viterbi_table[x][sentence[i - 1]] + math.log(self.transition_probabilities[x][partsOfSpeech])))
+                if sentence[i] not in self.emission_probabilities[partsOfSpeech]:
+                    ep = 1.0 / self.count_for_each_part_of_speech[partsOfSpeech]
+                else:
+                    ep = self.emission_probabilities[partsOfSpeech][sentence[i]]
+                if i == 0:
+                    viterbi_table[partsOfSpeech][sentence[i]] = math.log(ep) + math.log(self.s1[partsOfSpeech])
+                else:
+                    viterbi_table[partsOfSpeech][sentence[i]] = math.log(ep) + math.log(
+                        self.transition_probabilities[previousMax][partsOfSpeech]) + \
+                                                                viterbi_table[previousMax][sentence[i - 1]]
 
-        viterbi_table = []
         l1 = []
         l2 = []
-        for i in range(len(sentence)):
-            viterbi_table.append({})
-        for i in range(len(viterbi_table)):
+        for i in range(len(sentence) - 1, -1, -1):
+            if i == len(sentence) - 1:
+                currentMax = max(viterbi_table, key=lambda x: viterbi_table[x][sentence[i]])
+            else:
+                currentMax = previousMax
+            l1.append(currentMax)
+            l2.append(viterbi_table[currentMax][sentence[i]])
+
             if i != 0:
-                previous = max(viterbi_table[i - 1], key=viterbi_table[i - 1].get)
-                l1.append(previous)
-                l2.append(viterbi_table[i - 1][previous])
-            for partsOfSpeech in self.POS:
-                if sentence[i] not in self.emission_probabilities[partsOfSpeech]:
-                    self.emission_probabilities[partsOfSpeech].update({sentence[i]: 1.0 / self.total_words})
-                if i == 0:
-                    viterbi_table[i].update(
-                        {partsOfSpeech: math.log10(self.emission_probabilities[partsOfSpeech][sentence[i]]) + math.log10(
-                            self.s1[partsOfSpeech])})
-                else:
-                    viterbi_table[i].update(
-                        {partsOfSpeech: math.log10(self.emission_probabilities[partsOfSpeech][sentence[i]]) + math.log10(
-                            self.transition_probabilities[previous][partsOfSpeech]) + viterbi_table[i - 1][previous]})
-        i = len(viterbi_table) - 1
-        previous = max(viterbi_table[i], key=viterbi_table[i].get)
-        l1.append(previous)
-        l2.append(viterbi_table[i][previous])
+                previousMax = max(viterbi_table, key=lambda x: (
+                viterbi_table[x][sentence[i - 1]] + math.log(self.transition_probabilities[x][currentMax])))
+        l1.reverse()
+        l2.reverse()
         return [[l1], [l2]]
 
     def complex(self, sentence):
