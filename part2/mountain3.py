@@ -72,6 +72,7 @@ def transition_probability(x_no_of_columns):
     # Find transition probability based on gaussian distribution
     x_transition_probability_array = []                     # an array where index represents the row difference between
                                                             # two consecutive columns
+    # Tried gaussian but the below one worked better
     """x_standard_deviation = (float(x_no_of_columns)/100.0)
     x_2_variance = 2*x_standard_deviation*x_standard_deviation
     x_sigma_root2_pi = x_standard_deviation*math.sqrt(2.0*math.pi)
@@ -79,8 +80,10 @@ def transition_probability(x_no_of_columns):
     for x_diff in range(x_no_of_columns):
         x_transition_probability_array.append((math.e**-(x_diff*x_diff/x_2_variance))/x_sigma_root2_pi)
         total_p += x_transition_probability_array[x_diff]"""
+    factor = 2
     for x_diff in range(x_no_of_columns):
-        x_result = float(1.0/float(x_diff+1))
+
+        x_result = float(1.0/(float(x_diff+1)))
         x_transition_probability_array.append(x_result)
     # print "Transition Probability Array " + str(x_transition_probability_array)
     # print "Total P" + str(total_p)
@@ -89,15 +92,30 @@ def transition_probability(x_no_of_columns):
 
 #  dividing gradient in each cell by the sum of gradients in that column
 #
-def convert_edge_strength_to_probability_array(x_edge_strength, x_total_each_col):
+def convert_edge_strength_to_probability_array(x_edge_strength, x_total_each_col, given_col, given_row):
     x_total_of_total_each_col = 0
     for i in x_total_each_col:
         x_total_of_total_each_col += i
     x_probability_array = array([[0.0]*x_edge_strength.shape[1]]*x_edge_strength.shape[0])
-    for x_row in range(x_edge_strength.shape[0]):
+    x_probability_array_with_given_data = array([[0.0] * x_edge_strength.shape[1]] * x_edge_strength.shape[0])
+    for x_row in range(0, int(math.floor(x_edge_strength.shape[0]/2))):
         for x_col in range(x_edge_strength.shape[1]):
-            x_probability_array[x_row][x_col] = float(x_edge_strength[x_row][x_col])/float(x_total_of_total_each_col)
-    return x_probability_array
+            x_probability_array[x_row][x_col] = 15*float(x_edge_strength[x_row][x_col])/float(x_total_of_total_each_col)
+            if(abs(given_row - x_row) == 50):
+                x_probability_array_with_given_data[x_row][x_col] = 15*float(x_edge_strength[x_row][x_col])/float(x_total_of_total_each_col)
+            else:
+                x_probability_array_with_given_data[x_row][x_col] = float(x_edge_strength[x_row][x_col]) / float(
+                    x_total_of_total_each_col)
+    for x_row in range(int(math.floor(x_edge_strength.shape[0]/2+1)), x_edge_strength.shape[0]):
+        for x_col in range(x_edge_strength.shape[1]):
+            x_probability_array[x_row][x_col] = float(x_edge_strength[x_row][x_col]) / float(x_total_of_total_each_col)
+            if (abs(given_row - x_row) == 50):
+                x_probability_array_with_given_data[x_row][x_col] = 15 * float(x_edge_strength[x_row][x_col]) / float(
+                    x_total_of_total_each_col)
+            else:
+                x_probability_array_with_given_data[x_row][x_col] = float(x_edge_strength[x_row][x_col]) / float(
+                    x_total_of_total_each_col)
+    return [x_probability_array, x_probability_array_with_given_data]
 
 
 def createSamples(x_transition_probability_array, x_probability_of_Si_to_be_at_the_cell, lastSample):
@@ -208,11 +226,27 @@ def findProbability(x_transition_probability_array, x_probability_of_Si_to_be_at
         x_probability += probability_of_element_at_row_given_probability_of_preceding_column_row * probability_of_element_at_row_in_this_column
     return x_probability
 
+
+def findMaxFrequency(x_sampleList, x_no_of_rows):
+    x_ridge = []
+    for col in range(len(x_sampleList[0])):
+        max_frequency = 0
+        max_frequency_row = 0
+        x_frequency_count = [0] * x_no_of_rows
+        for sample_no in range(len(x_sampleList)):
+            x_frequency_count[x_sampleList[sample_no][col]] += 1
+            if x_frequency_count[x_sampleList[sample_no][col]] > max_frequency:
+                max_frequency = x_frequency_count[x_sampleList[sample_no][col]]
+                max_frequency_row = x_sampleList[sample_no][col]
+        x_ridge.append(max_frequency_row)
+    return x_ridge
+
+
 start_time = time.time()
 print time.asctime(time.localtime(time.time()))
 # main program
 #
-(input_filename, output_filename, gt_row, gt_col, no_of_samples) = sys.argv[1:]
+(input_filename, output_filename, gt_row, gt_col) = sys.argv[1:]
 
 # load in image
 input_image = Image.open(input_filename)
@@ -226,21 +260,33 @@ imsave(str(input_filename)+'edges.jpg', edge_strength)
 # ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
 result = bayes_net_1b(edge_strength)
 transition_probability_array = transition_probability(edge_strength.shape[0])
-probability_of_Si_to_be_at_the_cell = convert_edge_strength_to_probability_array(edge_strength, result[1])
+probability_of_Si_to_be_at_the_cell = convert_edge_strength_to_probability_array(edge_strength, result[1], int(gt_col), int(gt_row))
 
 
 # just create a horizontal centered line.
 # ridge = [ edge_strength.shape[0]/2 ] * edge_strength.shape[1]
-x_sample = result[0]
-sampleList = [x_sample]
-#for i in range(int(no_of_samples)):
-for i in range(1):
+x_ridge_part1 = result[0]
+sampleList = []
+
+for i in range(0, edge_strength.shape[1], 4):
     print str(i)
-    x_sample = createSamples2(transition_probability_array, probability_of_Si_to_be_at_the_cell, int(no_of_samples), result[0])
+    x_sample = createSamples2(transition_probability_array, probability_of_Si_to_be_at_the_cell[0], i, x_ridge_part1)
     sampleList.append(x_sample)
 
-#print x_sample
-#print result
+x_ridge_part2 = findMaxFrequency(sampleList, edge_strength.shape[0])
+
+print output_filename
+probability_of_Si_to_be_at_the_cell[1][int(gt_row)][int(gt_col)] *= 200
+
+sampleList = []
+for i in range(0, edge_strength.shape[1], 4):
+    if i < 0 or i > int(gt_col)+30:
+        continue
+    print str(i)
+    x_sample = createSamples2(transition_probability_array, probability_of_Si_to_be_at_the_cell[1], i, x_ridge_part1)
+    sampleList.append(x_sample)
+
+x_ridge_part3 = findMaxFrequency(sampleList, edge_strength.shape[0])
 
 f = open('out.txt', 'w')
 f.write(str(sampleList))
@@ -259,14 +305,23 @@ for i in range(edge_strength.shape[0]):
         max_probability = probability_of_x_sample
         finalSample = x_sample
 sample = finalSample"""
-
+end_time = time.time()
 # output answer
 # imsave(output_filename, draw_edge(input_image, result[0], (255, 0, 0), 5))
 
-output_filename = input_filename + "std=" + "emissionProbability=1" + str(time.asctime(time.localtime(time.time())))+"_1_"+str(no_of_samples)+"_"+output_filename
-imsave(output_filename, draw_edge(input_image, x_sample, (255, 0, 0), 5))
+
+#output_filename2 = input_filename + str(time.strftime("%a, %d %H-%M-%S", time.localtime(time.time())))+"_2_"+str(end_time - start_time)+"_"+output_filename
+imsave("1"+output_filename, draw_edge(input_image, x_ridge_part1, (255, 0, 0), 5))
+input_image1 = Image.open("1"+output_filename)
+imsave("2"+output_filename, draw_edge(input_image1, x_ridge_part2, (0, 0, 255), 5))
+input_image2 = Image.open("2"+output_filename)
+imsave("3"+output_filename, draw_edge(input_image2, x_ridge_part3, (0, 255, 0), 5))
+
+
+#output_filename = input_filename + str(time.strftime("%a, %d %H-%M-%S", time.localtime(time.time())))+"_1_"+str(end_time - start_time)+"_"+output_filename2
+#imsave(output_filename, draw_edge(input_image, x_ridge_part1, (255, 0, 0), 5))
 #output_filename = str(time.asctime(time.localtime(time.time())))+"_2_"+str(no_of_samples)+"_"+output_filename
 #imsave(output_filename, draw_edge(input_image, x_sample, (0, 255, 0), 5))
 
-end_time = time.time()
+
 print end_time - start_time

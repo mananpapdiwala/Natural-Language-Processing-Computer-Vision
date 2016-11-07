@@ -5,7 +5,7 @@
 #
 
 
-#bayes_net_1b
+# bayes_net_1b
 #
 # Just return a ridge with each element in the array representing row with max
 # edge strength value
@@ -126,6 +126,7 @@ def createSamples(x_transition_probability_array, x_probability_of_Si_to_be_at_t
             probability_of_element_at_row_in_this_column = x_probability_of_Si_to_be_at_the_cell[row][random_column]
 
             probability_at_current_row = probability_of_element_at_row_given_probability_of_preceding_column_row * probability_of_element_at_row_given_probability_of_succeeding_column_row * probability_of_element_at_row_in_this_column
+            #probability_at_current_row = probability_of_element_at_row_given_probability_of_preceding_column_row * probability_of_element_at_row_in_this_column
             probability_of_element_on_a_particular_row.append(probability_at_current_row)
 
             if max_probability < probability_at_current_row:
@@ -193,7 +194,7 @@ input_image = Image.open(input_filename)
 
 # compute edge strength mask
 edge_strength = edge_strength(input_image)
-imsave('edges.jpg', edge_strength)
+imsave(str(input_filename)+'edges.jpg', edge_strength)
 
 # You'll need to add code here to figure out the results! For now,
 # just create a horizontal centered line.
@@ -215,8 +216,8 @@ for i in range(int(no_of_samples)):
 result = [sum(x) for x in zip(*sampleList)]
 result = [x / int(no_of_samples) for x in result]
 
-print x_sample
-print result
+#print x_sample
+#print result
 
 f = open('out.txt', 'w')
 f.write(str(sampleList))
@@ -239,10 +240,10 @@ sample = finalSample"""
 # output answer
 # imsave(output_filename, draw_edge(input_image, result[0], (255, 0, 0), 5))
 
-output_filename = str(time.asctime(time.localtime(time.time())))+"_1_"+str(no_of_samples)+"_"+output_filename
-imsave(output_filename, draw_edge(input_image, result, (0, 0, 255), 5))
-output_filename = str(time.asctime(time.localtime(time.time())))+"_2_"+str(no_of_samples)+"_"+output_filename
-imsave(output_filename, draw_edge(input_image, x_sample, (0, 255, 0), 5))
+output_filename = input_filename + "std=" + "emissionProbability=1" + str(time.asctime(time.localtime(time.time())))+"_1_"+str(no_of_samples)+"_"+output_filename
+imsave(output_filename, draw_edge(input_image, result, (255, 0, 0), 5))
+#output_filename = str(time.asctime(time.localtime(time.time())))+"_2_"+str(no_of_samples)+"_"+output_filename
+#imsave(output_filename, draw_edge(input_image, x_sample, (0, 255, 0), 5))
 
 end_time = time.time()
 print end_time - start_time
