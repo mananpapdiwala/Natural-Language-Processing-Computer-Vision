@@ -12,6 +12,13 @@
 ####
 # Report:
 #
+# Approach:
+# For HMM we have created a table called viterbi tables which stores all the values generated during the viterbi
+# algorithm. Values in one column help us generate values in succeeding column. This table also helps us trace back
+# the final solution.
+# In Complex we have created another table for storing transitions such as P(si+2|si). The values of this table and the
+# P(si+1|si) collectively help us to find the final probabilities
+#
 # Training data used: bc.train
 # Testing data used: bc.test
 # Accuracies:
@@ -60,10 +67,11 @@ class Solver:
     # Calculate the log of the posterior probability of a given sentence
     # with a given part-of-speech labeling
     def posterior(self, sentence, label):
-        x = 0
-        for a in label:
-            x += math.log(a)
-        return x
+        return 0
+        #x = 0
+        #for a in label:
+        #    x += math.log(a)
+        #return x
 
     # Do the training!
     def train(self, data):
@@ -171,8 +179,9 @@ class Solver:
             w = 0
             for pos in self.POS:
                 w += (self.emission_probabilities[pos][word] if word in self.emission_probabilities[pos] else 1.0 /
-                    self.count_for_each_part_of_speech[pos]) * (
-                    (self.count_for_each_part_of_speech[pos] * 1.0) / self.total_words)
+                                                                                                              self.count_for_each_part_of_speech[
+                                                                                                                  pos]) * (
+                         (self.count_for_each_part_of_speech[pos] * 1.0) / self.total_words)
             s_w.append([parts_of_speech, (w_s * s) / w])
         max_row = 0
         max_probability = s_w[0][1]
@@ -252,7 +261,9 @@ class Solver:
                     #    self.emission_probabilities[partsOfSpeech] else 1.0 / self.count_for_each_part_of_speech[
                     #        partsOfSpeech]
                     emission = self.emission_probabilities[partsOfSpeech][sentence[i]] if sentence[i] in \
-                         self.emission_probabilities[partsOfSpeech] else (10 ** (-6))
+                                                                                          self.emission_probabilities[
+                                                                                              partsOfSpeech] else (
+                    10 ** (-6))
                     s = (self.s1[partsOfSpeech] * 1.0) * emission
                     variable_elimination_result[partsOfSpeech].update({i: math.log(s)})
 
