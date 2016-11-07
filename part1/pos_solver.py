@@ -12,6 +12,26 @@
 ####
 # Report:
 #
+# Training data used: bc.train
+# Testing data used: bc.test
+# Accuracies:
+# ==> So far scored 2000 sentences with 29442 words.
+#                   Words correct:     Sentences correct:
+#   0. Ground truth:      100.00%              100.00%
+#     1. Simplified:       90.59%               33.65%
+#            2. HMM:       95.06%               54.85%
+#        3. Complex:       69.83%               22.85%
+# ----
+# Training data used: bc.train
+# Testing data used: bc.test.tiny
+# Accuracies:
+# ==> So far scored 3 sentences with 42 words.
+#                   Words correct:     Sentences correct:
+#   0. Ground truth:      100.00%              100.00%
+#     1. Simplified:       92.86%               33.33%
+#            2. HMM:       97.62%               66.67%
+#        3. Complex:       76.19%                0.00%
+# ----
 ####
 
 import math
@@ -40,7 +60,10 @@ class Solver:
     # Calculate the log of the posterior probability of a given sentence
     # with a given part-of-speech labeling
     def posterior(self, sentence, label):
-        return 0
+        x = 0
+        for a in label:
+            x += math.log(a)
+        return x
 
     # Do the training!
     def train(self, data):
@@ -148,8 +171,8 @@ class Solver:
             w = 0
             for pos in self.POS:
                 w += (self.emission_probabilities[pos][word] if word in self.emission_probabilities[pos] else 1.0 /
-                        self.count_for_each_part_of_speech[pos]) * (
-                            (self.count_for_each_part_of_speech[pos] * 1.0) / self.total_words)
+                    self.count_for_each_part_of_speech[pos]) * (
+                    (self.count_for_each_part_of_speech[pos] * 1.0) / self.total_words)
             s_w.append([parts_of_speech, (w_s * s) / w])
         max_row = 0
         max_probability = s_w[0][1]
@@ -159,6 +182,10 @@ class Solver:
                 max_row = row
         return s_w[max_row]
 
+    # P(si/si+1)
+    def get_transition(self, transition, from_tag, to_tag):
+        return transition * (self.count_for_each_part_of_speech[from_tag]) / self.count_for_each_part_of_speech[to_tag]
+
     # Functions for each algorithm.
     #
     def simplified(self, sentence):
@@ -167,11 +194,8 @@ class Solver:
         for i in range(0, len(sentence)):
             pos, prob = self.get_simplified_probability(sentence[i])
             result.append(pos)
-            marginal_probability.append(math.log10(prob))
+            marginal_probability.append(prob)
         return [[result], [marginal_probability]]
-
-    def get_transition(self, transition, from_tag, to_tag):
-        return transition * (self.count_for_each_part_of_speech[from_tag]) / self.count_for_each_part_of_speech[to_tag]
 
     def hmm(self, sentence):
         viterbi_table = {}
@@ -210,6 +234,8 @@ class Solver:
                         self.get_transition(self.transition_probabilities[x][current_max], x, current_max))))
         result.reverse()
         marginal_probability.reverse()
+        for i in range(len(marginal_probability)):
+            marginal_probability[i] = math.exp(marginal_probability[i])
         return [[result], [marginal_probability]]
 
     def complex(self, sentence):
@@ -222,11 +248,11 @@ class Solver:
         for i in range(0, len(sentence)):
             for partsOfSpeech in self.POS:
                 if i == 0:
-                    # emission = self.emission_probabilities[partsOfSpeech][sentence[i]] if sentence[i] in self.emission_probabilities[partsOfSpeech] else 1.0 / self.count_for_each_part_of_speech[partsOfSpeech]
+                    # emission = self.emission_probabilities[partsOfSpeech][sentence[i]] if sentence[i] in \
+                    #    self.emission_probabilities[partsOfSpeech] else 1.0 / self.count_for_each_part_of_speech[
+                    #        partsOfSpeech]
                     emission = self.emission_probabilities[partsOfSpeech][sentence[i]] if sentence[i] in \
-                                                                                          self.emission_probabilities[
-                                                                                              partsOfSpeech] else (
-                        10 ** (-6))
+                         self.emission_probabilities[partsOfSpeech] else (10 ** (-6))
                     s = (self.s1[partsOfSpeech] * 1.0) * emission
                     variable_elimination_result[partsOfSpeech].update({i: math.log(s)})
 
@@ -275,6 +301,8 @@ class Solver:
                     max_probability = variable_elimination_result[key][i]
             result.append(max_p_o_s)
             marginal_probability.append(max_probability)
+        for i in range(len(marginal_probability)):
+            marginal_probability[i] = math.exp(marginal_probability[i])
         return [[result], [marginal_probability]]
 
     # This solve() method is called by label.py, so you should keep the interface the
