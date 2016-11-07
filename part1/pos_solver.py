@@ -67,11 +67,12 @@ class Solver:
     # Calculate the log of the posterior probability of a given sentence
     # with a given part-of-speech labeling
     def posterior(self, sentence, label):
-        return 0
-        #x = 0
-        #for a in label:
-        #    x += math.log(a)
-        #return x
+        x = 0
+        for a in label:
+            if a != 0:
+                x += math.log(a)
+
+        return x
 
     # Do the training!
     def train(self, data):
@@ -235,7 +236,8 @@ class Solver:
             else:
                 current_max = previous_max
             result.append(current_max)
-            marginal_probability.append(viterbi_table[current_max][sentence[i]])
+            baseSum = sum([math.exp(viterbi_table[key][sentence[i]]) for key in viterbi_table.keys()])
+            marginal_probability.append(math.exp(viterbi_table[current_max][sentence[i]]) / baseSum)
 
             if i != 0:
                 previous_max = max(viterbi_table, key=lambda x: (
@@ -243,8 +245,8 @@ class Solver:
                         self.get_transition(self.transition_probabilities[x][current_max], x, current_max))))
         result.reverse()
         marginal_probability.reverse()
-        for i in range(len(marginal_probability)):
-            marginal_probability[i] = math.exp(marginal_probability[i])
+        #for i in range(len(marginal_probability)):
+        #    marginal_probability[i] = math.exp(marginal_probability[i])
         return [[result], [marginal_probability]]
 
     def complex(self, sentence):

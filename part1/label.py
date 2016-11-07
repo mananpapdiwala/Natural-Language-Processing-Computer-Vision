@@ -48,14 +48,14 @@ print "Testing classifiers..."
 scorer = Score()
 Algorithms = ("Simplified", "HMM", "Complex")
 for (s, gt) in test_data:
-    outputs = {"0. Ground truth" : [[gt,], []]}
+    outputs = {"0. Ground truth": [[gt, ], [[1]*len(s)]]}
 
     # run all algorithms on the sentence
     for i in range(0, len(Algorithms)):
         outputs[ str(i+1) + ". " + Algorithms[i] ] = solver.solve(Algorithms[i], s)
 
     # compute posteriors for each solution
-    posteriors = { algo: [ solver.posterior(s, output) for output in outputs[algo][0] ] for algo in outputs }
+    posteriors = { algo: [ solver.posterior(s, output) for output in outputs[algo][1] ] for algo in outputs }
 
     Score.print_results(s, outputs, posteriors)
 
