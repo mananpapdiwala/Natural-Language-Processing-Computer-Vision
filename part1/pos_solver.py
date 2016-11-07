@@ -150,7 +150,7 @@ class Solver:
             self.count_for_each_part_of_speech[partsOfSpeech] = 1 if temp_sum == 0 else temp_sum
 
         self.total_words = sum([sum(self.emission_count[row].values()) for row in self.emission_count])
-
+        # Calculating P(Si+2|Si)
         s2 = {}
         for partsOfSpeech in self.POS:
             s2[partsOfSpeech] = {}
