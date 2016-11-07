@@ -13,6 +13,7 @@
 # Report:
 #
 # Approach:
+# For Simplified we have used Bayes law for each part of speech for a particular state and found the final part of speech for that state by taking the maximum value 
 # For HMM we have created a table called viterbi tables which stores all the values generated during the viterbi
 # algorithm. Values in one column help us generate values in succeeding column. This table also helps us trace back
 # the final solution.
