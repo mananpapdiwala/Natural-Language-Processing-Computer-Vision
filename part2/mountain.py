@@ -45,6 +45,12 @@
 #   https://www.youtube.com/watch?v=gxHe9wAWuGQ
 #   https://www.youtube.com/watch?v=12eZWG0Z5gY
 
+# Assumption:
+#   User gives correct row, col
+#   The row, col is in mid of mountain
+#
+#
+
 from PIL import Image
 from numpy import *
 from scipy.ndimage import filters
@@ -275,8 +281,8 @@ def findMaxFrequency(x_sampleList, x_no_of_rows):
     return x_ridge
 
 
-start_time = time.time()
-print time.asctime(time.localtime(time.time()))
+#start_time = time.time()
+#print time.asctime(time.localtime(time.time()))
 # main program
 #
 (input_filename, output_filename, gt_row, gt_col) = sys.argv[1:]
@@ -358,4 +364,4 @@ end_time = time.time()
 input_image2 = Image.open(output_filename)
 imsave(output_filename, draw_edge(input_image2, x_ridge_part3, (0, 255, 0), 5))
 
-print end_time - start_time
+#print end_time - start_time
